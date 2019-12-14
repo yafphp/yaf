@@ -185,8 +185,7 @@ static int yaf_view_exec_tpl(yaf_view_t *view, zend_op_array *op_array, zend_arr
 
 	call->symbol_table = symbol_table;
 
-	if (ret && php_output_start_user(NULL, 0, PHP_OUTP
-	UT_HANDLER_STDFLAGS) == FAILURE) {
+	if (ret && php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS) == FAILURE) {
 		php_error_docref("ref.outcontrol", E_WARNING, "failed to create buffer");
 		return 0;
 	}
