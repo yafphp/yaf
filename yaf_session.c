@@ -291,7 +291,7 @@ PHP_METHOD(yaf_session, current) {
 PHP_METHOD(yaf_session, key) {
 	zval *sess;
 	zend_string *key;
-	ulong index;
+	zend_ulong index;
 
 	sess = zend_read_property(yaf_session_ce,
 			getThis(), ZEND_STRL(YAF_SESSION_PROPERTY_NAME_SESSION), 1, NULL);

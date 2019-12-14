@@ -161,21 +161,32 @@ static inline void yaf_view_destroy_symtable(zend_array *symbol_table) /* {{{ */
 static int yaf_view_exec_tpl(yaf_view_t *view, zend_op_array *op_array, zend_array *symbol_table, zval* ret) /* {{{ */ {
 	zend_execute_data *call;
 	zval result;
+	uint32_t call_info;
 
 	ZVAL_UNDEF(&result);
 
 	op_array->scope = Z_OBJCE_P(view);
 
-	call = zend_vm_stack_push_call_frame(ZEND_CALL_NESTED_CODE
-#if PHP_VERSION_ID >= 70100
-		    | ZEND_CALL_HAS_SYMBOL_TABLE
+	zend_function *func = (zend_function *)op_array;
+
+#if PHP_VERSION_ID >= 70400
+	call_info = ZEND_CALL_HAS_THIS | ZEND_CALL_NESTED_CODE | ZEND_CALL_HAS_SYMBOL_TABLE;
+#elif PHP_VERSION_ID >= 70100
+	call_info = ZEND_CALL_NESTED_CODE | ZEND_CALL_HAS_SYMBOL_TABLE;
+#else
+	call_info = ZEND_CALL_NESTED_CODE;
 #endif
-			,
-			(zend_function*)op_array, 0, op_array->scope, Z_OBJ_P(view));
+
+#if PHP_VERSION_ID < 70400
+	call = zend_vm_stack_push_call_frame(call_info, func, 0, op_array->scope, Z_OBJ_P(view));
+#else
+    call = zend_vm_stack_push_call_frame(call_info, func, 0, Z_OBJ_P(view));
+#endif
 
 	call->symbol_table = symbol_table;
 
-	if (ret && php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS) == FAILURE) {
+	if (ret && php_output_start_user(NULL, 0, PHP_OUTP
+	UT_HANDLER_STDFLAGS) == FAILURE) {
 		php_error_docref("ref.outcontrol", E_WARNING, "failed to create buffer");
 		return 0;
 	}
@@ -222,7 +233,12 @@ static int yaf_view_render_tpl(yaf_view_t *view, zend_array *symbol_table, zend_
 		return 0;
 	}
 
+#if PHP_VERSION_ID < 70400
 	file_handle.filename = ZSTR_VAL(tpl);
+#else
+	/* setup file-handle */
+	zend_stream_init_filename(&file_handle, ZSTR_VAL(tpl));
+#endif
 	file_handle.free_filename = 0;
 	file_handle.type = ZEND_HANDLE_FILENAME;
 	file_handle.opened_path = NULL;

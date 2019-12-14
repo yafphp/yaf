@@ -331,12 +331,18 @@ yaf_config_t *yaf_config_ini_instance(yaf_config_t *this_ptr, zval *filename, zv
 		if (VCWD_STAT(ini_file, &sb) == 0) {
 			if (S_ISREG(sb.st_mode)) {
 				if ((fh.handle.fp = VCWD_FOPEN(ini_file, "r"))) {
+#if PHP_VERSION_ID < 70400
 					fh.filename = ini_file;
+#endif					
 					fh.type = ZEND_HANDLE_FP;
 					fh.free_filename = 0;
 					fh.opened_path = NULL;
 					ZVAL_UNDEF(&YAF_G(active_ini_file_section));
 
+#if PHP_VERSION_ID >= 70400
+/* setup file-handle */ // todo
+					zend_stream_init_filename(&fh, ini_file);
+#endif
 					YAF_G(parsing_flag) = YAF_CONFIG_INI_PARSING_START;
 					if (section_name && EXPECTED(Z_TYPE_P(section_name) == IS_STRING && Z_STRLEN_P(section_name))) {
 						YAF_G(ini_wanted_section) = section_name;
@@ -431,7 +437,7 @@ PHP_METHOD(yaf_config_ini, get) {
 		zval *properties;
 		char *entry, *seg, *pptr;
 		int seg_len;
-	   	long lval;
+	   	zend_long lval;
 		double dval;
 
 		properties = zend_read_property(yaf_config_ini_ce, getThis(), ZEND_STRL(YAF_CONFIG_PROPERT_NAME), 1, NULL);
@@ -568,7 +574,7 @@ PHP_METHOD(yaf_config_ini, current) {
 PHP_METHOD(yaf_config_ini, key) {
 	zval *prop;
 	zend_string *string;
-	ulong index;
+	zend_ulong index;
 
 	prop = zend_read_property(yaf_config_ini_ce, getThis(), ZEND_STRL(YAF_CONFIG_PROPERT_NAME), 0, NULL);
 	switch (zend_hash_get_current_key(Z_ARRVAL_P(prop), &string, &index)) {
